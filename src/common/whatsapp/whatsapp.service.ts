@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios'
 
 // NOTA: Esta es una implementación simulada
 // Para producción, usar APIs reales como Twilio, WhatsApp Business API, etc.
@@ -7,11 +8,25 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class WhatsAppService {
   private commercePhone: string;
+  private whatsappToken: string;
+  private phoneId: string;
+
+  private apiVersion: string;
 
   constructor(private configService: ConfigService) {
     // Número del comercio (debe configurarse en .env)
     this.commercePhone =
-      this.configService.get('COMMERCE_WHATSAPP') || '5491112345678';
+      this.configService.get('COMMERCE_WHATSAPP') || '543888453334';
+
+    this.whatsappToken =
+      this.configService.get('WHATSAPP_TOKEN') || '';
+
+
+    this.phoneId =
+      this.configService.get('WHATSAPP_PHONE_NUMBER_ID') || '';
+
+    this.apiVersion =
+      this.configService.get('WHATSAPP_API_VERSION') || 'v25.0';
   }
 
   async sendOrderNotification(
@@ -21,33 +36,97 @@ export class WhatsAppService {
     orderDetails: string,
     total: number,
   ): Promise<boolean> {
-    // Mensaje formateado para WhatsApp
-    const message =
-      `🍕 *NUEVO PEDIDO - FOOD SERVICE* 🍔\n\n` +
-      `*Código:* ${orderNumber}\n` +
-      `*Cliente:* ${customerName} ${customerLastName}\n` +
-      `*Total:* $${total}\n\n` +
-      `📋 *Detalle del pedido:*\n${orderDetails}\n\n` +
-      `🔗 *Seguimiento:* http://localhost:3000/orders/track/${orderNumber}\n\n` +
-      `_Mensaje generado automáticamente_`;
+   
+    try {
+      
 
-    // Simular envío (en desarrollo solo muestra en consola)
-    console.log('========================================');
-    console.log('📱 WHATSAPP NOTIFICATION');
-    console.log(`To: ${this.commercePhone}`);
-    console.log('========================================');
-    console.log(message);
-    console.log('========================================');
+      const response = await axios.post(
 
-    // En producción, usar API real:
-    // const response = await fetch('https://api.whatsapp.com/send', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ phone: this.commercePhone, message })
-    // });
+        `https://graph.facebook.com/${this.apiVersion}/${this.phoneId}/messages`,
 
-    // Por ahora retornamos true simulando éxito
-    return true;
+        {
+          messaging_product: "whatsapp",
+
+          to: this.commercePhone,
+
+          type: "template",
+
+          template: {
+
+            name: "jaspers_market_order_confirmation_v1",
+
+            language: {
+              code: "en_US"
+            },
+
+            components: [
+              {
+                type: "body",
+
+                parameters: [
+
+                  {
+                    type: "text",
+                    text: `${customerName} ${customerLastName}`
+                  },
+
+                  {
+                    type: "text",
+                    text: orderNumber
+                  },
+
+                  {
+                    type: "text",
+                    text: new Date().toLocaleDateString()
+                  }
+
+                ]
+              }
+            ]
+          }
+        },
+
+        {
+          headers: {
+            Authorization: `Bearer ${this.whatsappToken}`,
+            "Content-Type": "application/json"
+          }
+        }
+
+      );
+
+
+      console.log(
+        "WhatsApp enviado:",
+        response.data
+      );
+
+
+      return true;
+
+
+    } catch (error) {
+
+      if (axios.isAxiosError(error)) {
+
+        console.log(
+          "Error enviando WhatsApp:",
+          error.response?.data
+        );
+
+      } else {
+
+        console.log(
+          "Error desconocido:",
+          error
+        );
+
+      }
+
+      return false;
+
+    }
+
   }
 
   // Método para enviar al cliente (opcional)
@@ -56,21 +135,104 @@ export class WhatsAppService {
     orderNumber: string,
     total: number,
   ): Promise<boolean> {
-    const message =
-      `🍕 *FOOD SERVICE - PEDIDO CONFIRMADO* 🍔\n\n` +
-      `Hola! Tu pedido *${orderNumber}* ha sido recibido.\n` +
-      `Total: $${total}\n\n` +
-      `Podés seguir tu pedido aquí:\n` +
-      `http://localhost:3000/orders/track/${orderNumber}\n\n` +
-      `¡Gracias por tu compra! 🎉`;
+   
+    try {
 
-    console.log('========================================');
-    console.log('📱 WHATSAPP TO CUSTOMER');
-    console.log(`To: ${phone}`);
-    console.log('========================================');
-    console.log(message);
-    console.log('========================================');
+      const response = await axios.post(
 
-    return true;
+        `https://graph.facebook.com/${this.apiVersion}/${this.phoneId}/messages`,
+
+        {
+          messaging_product: "whatsapp",
+
+          to: phone.startsWith('54')
+            ? phone
+            : `54${phone}`,
+
+          type: "template",
+
+          template: {
+
+            name: "jaspers_market_order_confirmation_v1",
+
+            language: {
+              code: "en_US"
+            },
+
+            components: [
+              {
+                type: "body",
+
+                parameters: [
+
+                  {
+                    type: "text",
+                    text: "Cliente"
+                  },
+
+                  {
+                    type: "text",
+                    text: orderNumber
+                  },
+
+                  {
+                    type: "text",
+                    text: `$${total}`
+                  }
+
+                ]
+              }
+            ]
+
+          }
+        },
+
+        {
+          headers: {
+
+            Authorization:
+              `Bearer ${this.whatsappToken}`,
+
+            "Content-Type":
+              "application/json"
+
+          }
+        }
+
+      );
+
+
+      console.log(
+        "WhatsApp cliente enviado:",
+        response.data
+      );
+
+
+      return true;
+
+
+    } catch (error) {
+
+
+      if (axios.isAxiosError(error)) {
+
+        console.log(
+          "Error WhatsApp cliente:",
+          error.response?.data
+        );
+
+      } else {
+
+        console.log(
+          "Error desconocido:",
+          error
+        );
+
+      }
+
+
+      return false;
+
+    }
   }
 }

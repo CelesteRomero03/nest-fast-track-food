@@ -139,22 +139,42 @@ export class OrderService {
       `${item.quantity}x ${item.productName} - $${item.unitPrice}`
     ).join('\n');
 
-    await this.whatsappService.sendOrderNotification(
-      finalOrder.orderNumber,
-      finalOrder.customerName,
-      finalOrder.customerLastName,
-      orderDetails,
-      finalOrder.total
-    );
-
-    // Si el cliente dejó teléfono, enviar confirmación
-    if (finalOrder.customerPhone) {
-      await this.whatsappService.sendOrderConfirmationToCustomer(
-        finalOrder.customerPhone,
+    try {
+      await this.whatsappService.sendOrderNotification(
         finalOrder.orderNumber,
-        finalOrder.total
+        finalOrder.customerName,
+        finalOrder.customerLastName,
+        orderDetails,
+        finalOrder.total,
       );
+
+      if (finalOrder.customerPhone) {
+        await this.whatsappService.sendOrderConfirmationToCustomer(
+          finalOrder.customerPhone,
+          finalOrder.orderNumber,
+          finalOrder.total,
+        );
+      }
+    } catch (error) {
+      console.error('Error enviando WhatsApp:', error);
     }
+
+    // await this.whatsappService.sendOrderNotification(
+    //   finalOrder.orderNumber,
+    //   finalOrder.customerName,
+    //   finalOrder.customerLastName,
+    //   orderDetails,
+    //   finalOrder.total
+    // );
+
+    // // Si el cliente dejó teléfono, enviar confirmación
+    // if (finalOrder.customerPhone) {
+    //   await this.whatsappService.sendOrderConfirmationToCustomer(
+    //     finalOrder.customerPhone,
+    //     finalOrder.orderNumber,
+    //     finalOrder.total
+    //   );
+    // }
 
     // Registrar historial
     await this.recordStatusHistory(
