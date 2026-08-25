@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Patch,ParseIntPipe  } from '@nestjs/common';
+import { Controller, Get, Param, Patch,ParseIntPipe, UseGuards  } from '@nestjs/common';
 import { DeliveryModeService } from './delivery-mode.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('delivery-mode')
 export class DeliveryModeController {
@@ -19,6 +20,7 @@ constructor(
 
 
   @Patch(':id/activate')
+   @UseGuards(JwtAuthGuard)
   activate(
     @Param('id', ParseIntPipe) id:number
   ){
@@ -30,6 +32,7 @@ constructor(
 
 
   @Patch(':id/deactivate')
+   @UseGuards(JwtAuthGuard)
   deactivate(
     @Param('id', ParseIntPipe) id:number
   ){
