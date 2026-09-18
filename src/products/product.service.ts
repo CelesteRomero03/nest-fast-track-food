@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindOptionsWhere } from 'typeorm';
 import { Product } from './product.entity';
 import { CategoryService } from '../categories/category.service';
+import { FindProductsDto } from './dto/find-products.dto';
+import { CreateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -12,72 +14,121 @@ export class ProductService {
     private categoryService: CategoryService,
   ) { }
 
-  async create(
-    name: string,
-    price: number,
-    categoryId: number,
-    description?: string,
-    stock: number = 0,
-    imageUrl?: string,
-  ): Promise<Product> {
-    await this.categoryService.findOne(categoryId);
+
+  async create(createProductDto: CreateProductDto): Promise<Product> {
+    await this.categoryService.findOne(createProductDto.categoryId);
 
     const product = Product.create(
-      name,
-      price,
-      categoryId,
-      description,
-      stock,
-      imageUrl,
+      createProductDto.name,
+      createProductDto.price,
+      createProductDto.categoryId,
+      createProductDto.description,
+      createProductDto.stock,
+      createProductDto.imageUrl,
     );
-    return await this.productRepository.save(product);
-  }
 
-  async findAll(
-    search?: string,
-    categoryId?: number,
-    isAvailable?: boolean,
-  ): Promise<Product[]> {
-    const where: FindOptionsWhere<Product> = {};
+    return this.productRepository.save(product);
+  }
+  // async create(
+  //   name: string,
+  //   price: number,
+  //   categoryId: number,
+  //   description?: string,
+  //   stock: number = 0,
+  //   imageUrl?: string,
+  // ): Promise<Product> {
+  //   await this.categoryService.findOne(categoryId);
+
+  //   const product = Product.create(
+  //     name,
+  //     price,
+  //     categoryId,
+  //     description,
+  //     stock,
+  //     imageUrl,
+  //   );
+  //   return await this.productRepository.save(product);
+  // }
+  //cambie
+  async findAll(query: FindProductsDto) {
+    const { search, categoryId, isAvailable, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.productRepository.createQueryBuilder('product');
+    // no hace falta leftJoinAndSelect('product.category', ...) 
+    // porque tenés { eager: true } en la relación @ManyToOne,
+    // TypeORM ya trae la categoría automáticamente
 
     if (search) {
-      where.name = Like(`%${search}%`);
+      queryBuilder.andWhere('product.name LIKE :search', { search: `%${search}%` });
     }
 
     if (categoryId) {
-      where.categoryId = categoryId;
+      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
     }
 
     if (isAvailable !== undefined) {
-      where.isAvailable = isAvailable;
+      queryBuilder.andWhere('product.isAvailable = :isAvailable', { isAvailable });
     }
 
-    return await this.productRepository.find({
-      where,
-      relations: { category: true },
-      order: { name: 'ASC' },
-    });
+    const [data, total] = await queryBuilder
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
+
+  // async findAll(
+  //   search?: string,
+  //   categoryId?: number,
+  //   isAvailable?: boolean,
+  // ): Promise<Product[]> {
+  //   const where: FindOptionsWhere<Product> = {};
+
+  //   if (search) {
+  //     where.name = Like(`%${search}%`);
+  //   }
+
+  //   if (categoryId) {
+  //     where.categoryId = categoryId;
+  //   }
+
+  //   if (isAvailable !== undefined) {
+  //     where.isAvailable = isAvailable;
+  //   }
+
+  //   return await this.productRepository.find({
+  //     where,
+  //     relations: { category: true },
+  //     order: { name: 'ASC' },
+  //   });
+  // }
 
   async findAvailable(): Promise<Product[]> {
 
-     return await this.productRepository.find({
-    where: {
-      isAvailable: true,
-      category: {
-        isActive: true
-      }
-    },
-    relations: {
-      category: true
-    },
-    order: {
-      category: {
+    return await this.productRepository.find({
+      where: {
+        isAvailable: true,
+        category: {
+          isActive: true
+        }
+      },
+      relations: {
+        category: true
+      },
+      order: {
+        category: {
+          name: 'ASC'
+        },
         name: 'ASC'
       },
-      name: 'ASC'
-    },
-  });
+    });
     // return await this.productRepository.find({
     //   where: { isAvailable: true },
     //   relations: { category: true },
@@ -149,7 +200,7 @@ export class ProductService {
   async toggleAvailability(id: number): Promise<Product> {
     const product = await this.findOne(id);
 
-    
+
     product.toggleAvailability();
     return await this.productRepository.save(product);
   }

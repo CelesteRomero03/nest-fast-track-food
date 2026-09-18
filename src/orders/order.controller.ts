@@ -25,8 +25,9 @@ import { QrService } from '../common/qr/qr.service';
 import { WhatsAppService } from '../common/whatsapp/whatsapp.service';
 import type { Response } from 'express';
 import { Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-
+@ApiTags('orders')
 @Controller('orders')
 export class OrderController {
   constructor(
@@ -92,6 +93,7 @@ export class OrderController {
 
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body(ValidationPipe) updateStatusDto: UpdateOrderStatusDto,
@@ -102,6 +104,7 @@ export class OrderController {
 
   @Post(':id/confirm')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   confirmOrder(
     @Param('id', ParseIntPipe) id: number,
@@ -112,6 +115,7 @@ export class OrderController {
 
   @Post(':id/reject')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   rejectOrder(
     @Param('id', ParseIntPipe) id: number,
@@ -123,6 +127,7 @@ export class OrderController {
 
   @Post(':id/cancel')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   cancelOrder(
     @Param('id', ParseIntPipe) id: number,
@@ -134,6 +139,7 @@ export class OrderController {
 
   @Post(':id/items')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   addItems(
     @Param('id', ParseIntPipe) id: number,
     @Body(ValidationPipe) addItemsDto: AddItemsDto,
@@ -144,6 +150,7 @@ export class OrderController {
 
   @Patch(':id/items')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   updateItems(
     @Param('id', ParseIntPipe) id: number,
     @Body(ValidationPipe) updateItemsDto: UpdateItemsDto,
@@ -154,6 +161,7 @@ export class OrderController {
 
   @Delete(':orderId/items/:itemId')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   removeItem(
     @Param('orderId', ParseIntPipe) orderId: number,
