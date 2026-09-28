@@ -29,27 +29,7 @@ export class ProductService {
 
     return this.productRepository.save(product);
   }
-  // async create(
-  //   name: string,
-  //   price: number,
-  //   categoryId: number,
-  //   description?: string,
-  //   stock: number = 0,
-  //   imageUrl?: string,
-  // ): Promise<Product> {
-  //   await this.categoryService.findOne(categoryId);
-
-  //   const product = Product.create(
-  //     name,
-  //     price,
-  //     categoryId,
-  //     description,
-  //     stock,
-  //     imageUrl,
-  //   );
-  //   return await this.productRepository.save(product);
-  // }
-  //cambie
+  
   async findAll(query: FindProductsDto) {
     const { search, categoryId, isAvailable, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
@@ -84,32 +64,6 @@ export class ProductService {
     };
   }
 
-  // async findAll(
-  //   search?: string,
-  //   categoryId?: number,
-  //   isAvailable?: boolean,
-  // ): Promise<Product[]> {
-  //   const where: FindOptionsWhere<Product> = {};
-
-  //   if (search) {
-  //     where.name = Like(`%${search}%`);
-  //   }
-
-  //   if (categoryId) {
-  //     where.categoryId = categoryId;
-  //   }
-
-  //   if (isAvailable !== undefined) {
-  //     where.isAvailable = isAvailable;
-  //   }
-
-  //   return await this.productRepository.find({
-  //     where,
-  //     relations: { category: true },
-  //     order: { name: 'ASC' },
-  //   });
-  // }
-
   async findAvailable(): Promise<Product[]> {
 
     return await this.productRepository.find({
@@ -129,11 +83,7 @@ export class ProductService {
         name: 'ASC'
       },
     });
-    // return await this.productRepository.find({
-    //   where: { isAvailable: true },
-    //   relations: { category: true },
-    //   order: { category: { name: 'ASC' }, name: 'ASC' },
-    // });
+  
   }
 
   async findByCategory(categoryId: number): Promise<Product[]> {

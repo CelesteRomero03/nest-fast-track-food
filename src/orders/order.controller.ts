@@ -26,6 +26,7 @@ import { WhatsAppService } from '../common/whatsapp/whatsapp.service';
 import type { Response } from 'express';
 import { Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FindOrdersDto } from './dto/find-orders.dto';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -50,22 +51,10 @@ export class OrderController {
 
   // ==================== ENDPOINTS PROTEGIDOS (Admin/Employee) ====================
 @Get()
-  @UseGuards(JwtAuthGuard)
-  findAll(
-    @Query('status') status?: OrderStatus,
-    @Query('deliveryMode') deliveryMode?: DeliveryMode,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.orderService.findAllOrders(
-      status,
-      deliveryMode,
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined,
-      search,
-    );
-  }
+@UseGuards(JwtAuthGuard)
+findAll(@Query() query: FindOrdersDto) {
+  return this.orderService.findAllOrders(query);
+}
 
   @Get('pending-actions')
   @UseGuards(JwtAuthGuard)

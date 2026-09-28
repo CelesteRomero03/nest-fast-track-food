@@ -17,6 +17,7 @@ import { OrderResponseDto } from './dto/order-response.dto';
 import { OrderStatus, DeliveryMode } from './enums/order-status.enum';
 import { QrService } from '../common/qr/qr.service';
 import { WhatsAppService } from '../common/whatsapp/whatsapp.service';
+import { FindOrdersDto } from './dto/find-orders.dto';
 
 @Injectable()
 export class OrderService {
@@ -189,41 +190,51 @@ export class OrderService {
   }
 
   // ==================== ADMIN: Listar todos los pedidos ====================
-  async findAllOrders(
-    status?: OrderStatus,
-    deliveryMode?: DeliveryMode,
-    startDate?: Date,
-    endDate?: Date,
-    search?: string,
-  ): Promise<OrderResponseDto[]> {
-    const query = this.orderRepository
+  async findAllOrders(query: FindOrdersDto): Promise<{
+    data: OrderResponseDto[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const { status, deliveryMode, startDate, endDate, search, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.orderRepository
       .createQueryBuilder('order')
-      .leftJoinAndSelect('order.items', 'items')
       .leftJoinAndSelect('order.createdByUser', 'createdByUser')
       .leftJoinAndSelect('order.lastModifiedByUser', 'lastModifiedByUser')
       .orderBy('order.createdAt', 'DESC');
 
     if (status) {
-      query.andWhere('order.status = :status', { status });
+      queryBuilder.andWhere('order.status = :status', { status });
     }
     if (deliveryMode) {
-      query.andWhere('order.deliveryMode = :deliveryMode', { deliveryMode });
+      queryBuilder.andWhere('order.deliveryMode = :deliveryMode', { deliveryMode });
     }
     if (startDate) {
-      query.andWhere('order.createdAt >= :startDate', { startDate });
+      queryBuilder.andWhere('order.createdAt >= :startDate', { startDate: new Date(startDate) });
     }
     if (endDate) {
-      query.andWhere('order.createdAt <= :endDate', { endDate });
+      queryBuilder.andWhere('order.createdAt <= :endDate', { endDate: new Date(endDate) });
     }
     if (search) {
-      query.andWhere(
+      queryBuilder.andWhere(
         '(order.orderNumber LIKE :search OR order.customerName LIKE :search OR order.customerLastName LIKE :search OR order.customerEmail LIKE :search)',
         { search: `%${search}%` },
       );
     }
 
-    const orders = await query.getMany();
-    return orders.map((order) => new OrderResponseDto(order));
+    const [orders, total] = await queryBuilder
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: orders.map((order) => new OrderResponseDto(order)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   // ==================== ADMIN: Obtener pedidos por estado ====================
